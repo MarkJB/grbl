@@ -321,10 +321,18 @@ ISR(TIMER1_COMPA_vect)
   if (busy) { return; } // The busy-flag is used to avoid reentering this interrupt
 
   // Set the direction pins a couple of nanoseconds before we step the steppers
-  DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | (st.dir_outbits & DIRECTION_MASK);
-  #ifdef ENABLE_DUAL_AXIS
-    DIRECTION_PORT_DUAL = (DIRECTION_PORT_DUAL & ~DIRECTION_MASK_DUAL) | (st.dir_outbits_dual & DIRECTION_MASK_DUAL);
-  #endif
+  // DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | (st.dir_outbits & DIRECTION_MASK);
+  // #ifdef ENABLE_DUAL_AXIS
+  //   DIRECTION_PORT_DUAL = (DIRECTION_PORT_DUAL & ~DIRECTION_MASK_DUAL) | (st.dir_outbits_dual & DIRECTION_MASK_DUAL);
+  // #endif
+
+  // Update for solenoid dir change issue https://github.com/gnea/grbl/issues/640
+  // Set axis dir bits separatley
+  DIRECTION_PORT = (DIRECTION_PORT & ~((1<<X_DIRECTION_BIT)|(1<<Y_DIRECTION_BIT))) | (st.dir_outbits & ((1<<X_DIRECTION_BIT)|(1<<Y_DIRECTION_BIT)));
+  // Then only change the z_dir bits if the z_step bits change.
+  if(st.step_outbits & (1<<Z_STEP_BIT)){
+    DIRECTION_PORT = (DIRECTION_PORT & ~((1<<Z_DIRECTION_BIT))) | (st.dir_outbits & ((1<<Z_DIRECTION_BIT)));
+  } 
 
   // Then pulse the stepping pins
   #ifdef STEP_PULSE_DELAY
